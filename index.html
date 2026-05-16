@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroFocus // Quantum In-Flight Engine</title>
+    <style>
+        :root {
+            --panel-bg: rgba(6, 8, 14, 0.88);
+            --neon-blue: #00f3ff;
+            --neon-purple: #b026ff;
+            --text-main: #f0f3f8;
+            --text-dim: #5c6470;
+            --border: rgba(255, 255, 255, 0.05);
+            --glow-blue: 0 0 15px rgba(0, 243, 255, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: #02050d;
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* DUAL-LAYER PARALLAX TOPOGRAPHY */
+        .scenery-matrix {
+            position: absolute;
+            width: 100%; height: 100%;
+            top: 0; left: 0;
+            background-color: #050f09; /* Ultra-deep earth tone */
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .scenery-layer {
+            position: absolute;
+            top: -100%; left: -100%;
+            width: 300%; height: 300%;
+            opacity: 0.15;
+            pointer-events: none;
+            transition: opacity 1.5s ease;
+        }
+
+        /* Layer 1: Landmasses and deep ocean trenches */
+        .layer-topography {
+            background-image: 
+                radial-gradient(circle at 20% 30%, #010d1c 0%, #010d1c 45%, transparent 46%),
+                radial-gradient(circle at 75% 65%, #001226 0%, #001226 35%, transparent 36%),
+                radial-gradient(circle at 20% 30%, rgba(0, 243, 255, 0.1) 0%, transparent 48%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.02) 25%, transparent 25%, transparent 50%, rgba(0, 0, 0, 0.15) 50%, rgba(0, 0, 0, 0.15) 75%, transparent 75%);
+            background-size: 100% 100%, 100% 100%, 100% 100%, 90px 90px;
+        }
+
+        /* Layer 2: High speed cirrus cloud banks over terrain */
+        .layer-clouds {
+            background-image: 
+                radial-gradient(rgba(255, 255, 255, 0.15) 10%, transparent 30%),
+                radial-gradient(rgba(255, 255, 255, 0.1) 5%, transparent 20%);
+            background-size: 350px 250px, 500px 350px;
+            mix-blend-mode: screen;
+        }
+
+        /* Velocity triggers */
+        body.in-flight .layer-topography {
+            opacity: 0.7;
+            animation: landKinetic 8s linear infinite;
+        }
+
+        body.in-flight .layer-clouds {
+            opacity: 0.45;
+            animation: cloudKinetic 3.2s linear infinite;
+        }
+
+        @keyframes landKinetic {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-150px, 100px); }
+        }
+
+        @keyframes cloudKinetic {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-350px, 200px); }
+        }
+
+        /* Glass HUD Sheer */
+        .window-glare {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .app-container {
+            position: relative;
+            width: 100%;
+            max-width: 1050px;
+            height: 680px;
+            z-index: 2;
+            perspective: 1200px;
+        }
+
+        .screen {
+            position: absolute;
+            width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(30px) scale(0.98);
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0) scale(1);
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            font-weight: 300;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            margin-bottom: 25px;
+        }
+
+        h1 span {
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+
+        h2 {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+            width: 100%;
+        }
+
+        /* WORKFLOW SETUP CONSOLE */
+        .booking-layout {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(30px);
+            padding: 35px;
+            border-radius: 16px;
+            width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+        }
+
+        input {
+            width: 260px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            padding: 12px 16px;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.9rem;
+            outline: none;
+            letter-spacing: 1px;
+        }
+
+        input:focus {
+            border-color: var(--neon-blue);
+            box-shadow: var(--glow-blue);
+        }
+
+        .grid-container-scroll {
+            flex: 1;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.02);
+        }
+
+        .flight-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+
+        .flight-box {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .flight-box:hover {
+            border-color: rgba(0, 243, 255, 0.3);
+            background: rgba(0, 243, 255, 0.02);
+        }
+
+        .flight-box.selected {
+            border-color: var(--neon-blue);
+            background: rgba(0, 243, 255, 0.05);
+            box-shadow: var(--glow-blue);
+        }
+
+        .flight-route { font-size: 1rem; font-weight: 700; margin-bottom: 2px; }
+        .flight-meta { font-size: 0.65rem; color: var(--text-dim); line-height: 1.3; }
+
+        .seat-section {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .seat-box {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .seat-box:hover { border-color: rgba(176, 38, 255, 0.3); }
+        .seat-box.selected {
+            border-color: var(--neon-purple);
+            background: rgba(176, 38, 255, 0.06);
+            box-shadow: 0 0 15px rgba(176, 38, 255, 0.15);
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            border: none;
+            padding: 16px;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.35);
+            opacity: 0.95;
+        }
+
+        .btn-primary:disabled { opacity: 0.15; cursor: not-allowed; }
+
+        /* TICKET VERIFICATION SYSTEM */
+        .ticket-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 760px;
+            filter: drop-shadow(0 30px 50px rgba(0,0,0,0.5));
+            transition: transform 0.6s cubic-bezier(0.32, 0, 0.67, 0);
+        }
+
+        .ticket-container {
+            background: #ffffff;
+            color: #090a10;
+            border-radius: 14px;
+            display: flex;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .ticket-main { padding: 40px; flex: 2.2; }
+        .tear-line-container {
+            width: 40px;
+            background-color: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border-left: 2px dashed #cfd8dc;
+            border-right: 2px dashed #cfd8dc;
+            user-select: none;
+        }
+        .tear-line-container:hover { background: #eceff1; }
+        .tear-text { transform: rotate(-90deg); white-space: nowrap; font-size: 0.55rem; font-weight: 800; letter-spacing: 3px; color: #78909c; }
+        .ticket-stub { padding: 40px; flex: 1; background: #f4f6f9; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.6s cubic-bezier(0.32, 0, 0.67, 0), opacity 0.4s; transform-origin: top right; }
+
+        .ticket-header { display: flex; justify-content: space-between; font-size: 0.65rem; font-weight: 700; color: #78909c; margin-bottom: 20px; }
+        .route-display { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .airport-code { font-size: 2.4rem; font-weight: 900; }
+        .plane-icon { font-size: 1.3rem; color: #00b8d4; }
+        .ticket-details { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .detail-label { font-size: 0.6rem; color: #78909c; text-transform: uppercase; }
+        .detail-value { font-size: 0.9rem; font-weight: 600; }
+
+        .stub-torn { transform: translateY(200px) rotate(25deg); opacity: 0; pointer-events: none; }
+        .main-takeoff { transform: scale(1.4) translateY(-600px); opacity: 0; }
+
+        /* FLIGHT INSTRUMENT HUD SCREEN */
+        .ife-screen {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            backdrop-filter: blur(20px);
+            width: 100%; height: 560px;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.7);
+            display: grid;
+            grid-template-rows: 50px 1fr 65px;
+            overflow: hidden;
+        }
+
+        body.in-flight .ife-screen { animation: cockpitVibe 0.3s infinite alternate; }
+        @keyframes cockpitVibe { 0% { transform: translateY(0); } 100% { transform: translateY(0.4px) translateX(0.2px); } }
+
+        .ife-header {
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+        }
+
+        .ife-body { display: grid; grid-template-columns: 1.2fr 1fr; padding: 24px; gap: 24px; height: 100%; overflow: hidden; }
+
+        /* INSTRUMENT FLIGHT PANEL WITH MATRIX LOG */
+        .left-hud-stack { display: grid; grid-template-rows: 110px 1fr; gap: 20px; height: 100%; overflow: hidden; }
+        
+        .map-container {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #04060b;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            overflow: hidden;
+        }
+        .map-track-wrapper { position: relative; width: 100%; height: 20px; display: flex; align-items: center; }
+        .map-route-line { position: absolute; width: 100%; height: 1px; background-image: linear-gradient(to right, rgba(0, 243, 255, 0.2) 60%, transparent 40%); background-size: 8px 1px; }
+        .map-plane { position: absolute; font-size: 1.1rem; color: var(--neon-blue); transform: translate(-50%, -50%) rotate(90deg); top: 50%; left: 0; transition: left 1s linear; text-shadow: var(--glow-blue); }
+        .map-node { position: absolute; font-size: 0.65rem; font-weight: 700; color: #fff; background: #0c0f17; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border); top: 50%; transform: translateY(-50%); }
+        .map-node.origin { left: 0; transform: translate(-50%, -50%); }
+        .map-node.destination { right: 0; transform: translate(50%, -50%); }
+
+        /* REALTIME CONSOLE LOGGER LOGISTICS */
+        .logger-terminal {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 0.65rem;
+            color: #a0aec0;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .log-entry { display: flex; gap: 10px; line-height: 1.4; opacity: 0; transform: translateY(5px); animation: logFadeIn 0.3s forwards; }
+        .log-time { color: var(--neon-blue); }
+        .log-text { color: var(--text-main); }
+        @keyframes logFadeIn { to { opacity: 1; transform: translateY(0); } }
+
+        .engine-paused .map-plane { transition: none; }
+        .engine-paused .layer-topography, .engine-paused .layer-clouds { animation-play-state: paused !important; }
+
+        /* NUMERIC TELEMETRY INTERFACE */
+        .hud-panel { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .ife-timer { font-size: 5.5rem; font-weight: 100; letter-spacing: -2px; color: #fff; font-variant-numeric: tabular-nums; }
+        .ife-progress-container { width: 100%; max-width: 260px; height: 3px; background: rgba(255,255,255,0.05); border-radius: 2px; margin-bottom: 30px; position: relative; overflow: hidden; }
+        .ife-progress-bar { position: absolute; left: 0; height: 100%; width: 0; background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue)); }
+
+        .telemetry-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; width: 100%; max-width: 300px; }
+        .telemetry-item label { display: block; font-size: 0.6rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1px; }
+        .telemetry-item val { display: block; font-size: 1rem; font-weight: 500; color: var(--neon-blue); margin-top: 2px; }
+
+        .ife-footer { background: rgba(0,0,0,0.2); border-top: 1px solid var(--border); display: flex; justify-content: center; align-items: center; gap: 12px; }
+        .btn-control { background: rgba(255,255,255,0.02); border: 1px solid var(--border); color: var(--text-main); padding: 8px 24px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; }
+        .btn-control:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
+        .btn-abort { border-color: rgba(255, 76, 76, 0.2); color: #ff4c4c; }
+        .btn-abort:hover { background: rgba(255, 76, 76, 0.05); border-color: #ff4c4c; }
+
+        .arrival-card { text-align: center; }
+        .arrival-card h2 { font-size: 2rem; color: #fff; font-weight: 300; margin-bottom: 8px; }
+
+        .grid-container-scroll::-webkit-scrollbar { width: 4px; }
+        .grid-container-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="scenery-matrix">
+        <div class="scenery-layer layer-topography"></div>
+        <div class="scenery-layer layer-clouds"></div>
+    </div>
+    <div class="window-glare"></div>
+
+    <div class="app-container">
+
+        <!-- STEP 1: JOURNEY PROFILER -->
+        <div id="screen-setup" class="screen active">
+            <div class="booking-layout">
+                <h1>Outbound <span>Vector</span></h1>
+                
+                <div style="margin-bottom: 20px;">
+                    <div class="input-group">
+                        <label>Origin Terminal</label>
+                        <input type="text" id="input-from" value="LHR" maxlength="3">
+                    </div>
+                </div>
+
+                <h2>Select Target Profile (30 Dest)</h2>
+                <div class="grid-container-scroll">
+                    <div class="flight-grid" id="dynamic-flight-container"></div>
+                </div>
+
+                <h2>Cabin Stratum Allocation</h2>
+                <div class="seat-section">
+                    <div class="seat-box" onclick="selectSeat(this, '01A', 'Study System Load')">
+                        <div class="seat-label">01A</div>
+                        <div class="seat-type">Study</div>
+                    </div>
+                    <div class="seat-box" onclick="selectSeat(this, '02B', 'Deep Core Processing')">
+                        <div class="seat-label">02B</div>
+                        <div class="seat-type">Work</div>
+                    </div>
+                    <div class="seat-box" onclick="selectSeat(this, '03C', 'Creative UI Architecture')">
+                        <div class="seat-label">03C</div>
+                        <div class="seat-type">Create</div>
+                    </div>
+                </div>
+
+                <button id="btn-generate" class="btn-primary" disabled onclick="compileManifest()">Generate Manifest</button>
+            </div>
+        </div>
+
+        <!-- STEP 2: BOARDING MANIFEST TICKET -->
+        <div id="screen-pass" class="screen">
+            <h1>Manifest Verification</h1>
+            <div class="ticket-wrapper" id="ticket-wrapper">
+                <div class="ticket-container">
+                    <div class="ticket-main">
+                        <div class="ticket-header">
+                            <span>BOARDING PASS // QUANTUM STRATUM</span>
+                            <span id="pass-serial" style="color:var(--neon-purple)">AX-0000</span>
+                        </div>
+                        <div class="route-display">
+                            <div class="airport-code" id="pass-from">---</div>
+                            <div class="plane-icon">✈</div>
+                            <div class="airport-code" id="pass-to">---</div>
+                        </div>
+                        <div class="ticket-details">
+                            <div>
+                                <div class="detail-label">Strategy Directives</div>
+                                <div class="detail-value" id="pass-task">---</div>
+                            </div>
+                            <div>
+                                <div class="detail-label">Allocation Time</div>
+                                <div class="detail-value" id="pass-duration">---</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tear-line-container" onclick="executeTearSequence()">
+                        <div class="tear-text">TEAR & COMMENCE</div>
+                    </div>
+
+                    <div class="ticket-stub" id="ticket-stub-segment">
+                        <div class="ticket-header"><span>STUB</span></div>
+                        <div>
+                            <div class="detail-label">Suite ID</div>
+                            <div class="detail-value" id="pass-seat">---</div>
+                            <div class="detail-label" style="margin-top: 15px;">Interface</div>
+                            <div class="detail-value">HUD-01</div>
+                        </div>
+                        <div style="font-size: 0.5rem; color: #90a4ae; letter-spacing: 0.5px; text-transform: uppercase; font-weight: 700;">Click Dotted Line</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: FLIGHT INSTRUMENTATION INTERFACE -->
+        <div id="screen-ife" class="screen">
+            <div class="ife-screen" id="ife-main-chassis">
+                <div class="ife-header">
+                    <div>AEROFOCUS HUD INSTRUMENT ENGINE</div>
+                    <div id="ife-header-route">--- ➔ ---</div>
+                </div>
+                
+                <div class="ife-body">
+                    <div class="left-hud-stack">
+                        <!-- FLIGHT TELEMETRY MAP -->
+                        <div class="map-container">
+                            <div class="map-track-wrapper">
+                                <div class="map-node origin" id="map-node-from">---</div>
+                                <div class="map-route-line"></div>
+                                <div class="map-plane" id="flight-telemetry-plane">✈</div>
+                                <div class="map-node destination" id="map-node-to">---</div>
+                            </div>
+                        </div>
+                        <!-- REALTIME DIAGNOSTIC RUNTIME LOG -->
+                        <div class="logger-terminal" id="terminal-log-output">
+                            <!-- Injected entries go here -->
+                        </div>
+                    </div>
+
+                    <div class="hud-panel">
+                        <div class="ife-timer" id="ife-timer-display">00:00</div>
+                        <div class="ife-progress-container">
+                            <div class="ife-progress-bar" id="ife-progress-bar"></div>
+                        </div>
+                        <div class="telemetry-grid">
+                            <div class="telemetry-item">
+                                <label>Strategy Directive</label>
+                                <val id="ife-hud-task">---</val>
+                            </div>
+                            <div class="telemetry-item">
+                                <label>Suite Matrix</label>
+                                <val id="ife-hud-seat">---</val>
+                            </div>
+                            <div class="telemetry-item">
+                                <label>Cruising Alt</label>
+                                <val>38,000 FT</val>
+                            </div>
+                            <div class="telemetry-item">
+                                <label>Engine Vector</label>
+                                <val id="ife-hud-status" style="color:var(--neon-blue);">Cruising</val>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ife-footer">
+                    <button class="btn-control btn-abort" onclick="abortFlightSequence()">Abort</button>
+                    <button id="btn-pause" class="btn-control" onclick="toggleFlightEngine()">Hold Engine</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: SECTOR RESOLUTION CARD -->
+        <div id="screen-arrival" class="screen">
+            <div class="arrival-card">
+                <h2>Sector Target Achieved</h2>
+                <p style="color: var(--text-dim); font-size: 0.8rem; letter-spacing: 0.5px; margin-bottom: 25px;">Operational cycle terminated. Logs committed safely to terminal matrix.</p>
+                <button class="btn-primary" style="width: auto; padding: 12px 35px;" onclick="resetWorkflowEngine()">Map Outbound</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const globalDestinations = [
+            { code: "HND", name: "Tokyo", time: 45 }, { code: "CDG", name: "Paris", time: 25 },
+            { code: "DXB", name: "Dubai", time: 60 }, { code: "JFK", name: "New York", time: 45 },
+            { code: "SIN", name: "Singapore", time: 60 }, { code: "LAX", name: "Los Angeles", time: 90 },
+            { code: "AMS", name: "Amsterdam", time: 25 }, { code: "ICN", name: "Seoul", time: 45 },
+            { code: "SYD", name: "Sydney", time: 90 }, { code: "FCO", name: "Rome", time: 30 },
+            { code: "CPH", name: "Copenhagen", time: 25 }, { code: "HKG", name: "Hong Kong", time: 60 },
+            { code: "BOM", name: "Mumbai", time: 45 }, { code: "MAD", name: "Madrid", time: 30 },
+            { code: "ZRH", name: "Zurich", time: 25 }, { code: "ORD", name: "Chicago", time: 45 },
+            { code: "YVR", name: "Vancouver", time: 60 }, { code: "BER", name: "Berlin", time: 30 },
+            { code: "VIE", name: "Vienna", time: 25 }, { code: "BKK", name: "Bangkok", time: 45 },
+            { code: "DOH", name: "Doha", time: 45 }, { code: "HEL", name: "Helsinki", time: 30 },
+            { code: "LIS", name: "Lisbon", time: 25 }, { code: "DFW", name: "Dallas", time: 60 },
+            { code: "MEL", name: "Melbourne", time: 90 }, { code: "ARN", name: "Stockholm", time: 25 },
+            { code: "BRU", name: "Brussels", time: 20 }, { code: "OSL", name: "Oslo", time: 25 },
+            { code: "TPE", name: "Taipei", time: 45 }, { code: "MEX", name: "Mexico City", time: 60 }
+        ];
+
+        let selectedFlightData = null, selectedSeatData = null, timerCountdownInstance = null;
+        let totalRuntimeSeconds = 0, runningSecondsRemaining = 0, isEngineRunning = false;
+        
+        // WEB AUDIO API INSTANCES
+        let audioCtx = null, engineOscillator = null, lowPassFilter = null, audioGainNode = null;
+
+        const logPhrases = [
+            "Vector parameters within expected tolerances.",
+            "Analyzing terrain topography anomalies...",
+            "High-altitude atmospheric stability holding.",
+            "Instrument array transmitting metrics cleanly.",
+            "Syncing telemetry framework with ground terminal.",
+            "Ground velocity tracking normal.",
+            "Cabin air-cycle metrics functional.",
+            "Scanning waypoint sector coordinates..."
+        ];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const gridContainer = document.getElementById('dynamic-flight-container');
+            globalDestinations.forEach(dest => {
+                const box = document.createElement('div');
+                box.className = 'flight-box';
+                box.onclick = () => {
+                    document.querySelectorAll('.flight-box').forEach(b => b.classList.remove('selected'));
+                    box.classList.add('selected');
+                    selectedFlightData = dest;
+                    evaluateValidationState();
+                };
+                box.innerHTML = `<div class="flight-route">➔ ${dest.code}</div><div class="flight-meta">${dest.name}<br>${dest.time}m</div>`;
+                gridContainer.appendChild(box);
+            });
+        });
+
+        function selectSeat(element, seatId, objectiveLabel) {
+            document.querySelectorAll('.seat-box').forEach(box => box.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedSeatData = { seat: seatId, task: objectiveLabel };
+            evaluateValidationState();
+        }
+
+        function evaluateValidationState() {
+            document.getElementById('btn-generate').disabled = !(selectedFlightData && selectedSeatData);
+        }
+
+        function transitionActiveScreen(hideId, showId) {
+            document.getElementById(hideId).classList.remove('active');
+            document.getElementById(showId).classList.add('active');
+        }
+
+        function compileManifest() {
+            const originCode = (document.getElementById('input-from').value || "LHR").trim().substring(0, 3).toUpperCase();
+            document.getElementById('pass-from').innerText = originCode;
+            document.getElementById('pass-to').innerText = selectedFlightData.code;
+            document.getElementById('pass-duration').innerText = `${selectedFlightData.time} Mins`;
+            document.getElementById('pass-task').innerText = selectedSeatData.task;
+            document.getElementById('pass-seat').innerText = selectedSeatData.seat;
+            document.getElementById('pass-serial').innerText = `AX-${Math.floor(1000 + Math.random() * 9000)}`;
+
+            totalRuntimeSeconds = selectedFlightData.time * 60;
+            runningSecondsRemaining = totalRuntimeSeconds;
+            transitionActiveScreen('screen-setup', 'screen-pass');
+        }
+
+        function executeTearSequence() {
+            const stub = document.getElementById('ticket-stub-segment');
+            const wrapper = document.getElementById('ticket-wrapper');
+            stub.classList.add('stub-torn');
+            setTimeout(() => {
+                wrapper.classList.add('main-takeoff');
+                setTimeout(() => {
+                    stub.classList.remove('stub-torn');
+                    wrapper.classList.remove('main-takeoff');
+                    initializeInFlightSystems();
+                }, 700);
+            }, 500);
+        }
+
+        function pushTerminalLog(text) {
+            const terminal = document.getElementById('terminal-log-output');
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${timeStr}]</span><span class="log-text">${text}</span>`;
+            
+            terminal.appendChild(entry);
+            if (terminal.childNodes.length > 7) terminal.removeChild(terminal.firstChild);
+        }
+
+        // AMBIENT ENGINE AUDIO SYNTHESIS
+        function startEngineAudio() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                // Low sawtooth base hum mixed with pinkish noise profiles
+                engineOscillator = audioCtx.createOscillator();
+                engineOscillator.type = 'sawtooth';
+                engineOscillator.frequency.value = 48; // Deep cabin frequency rumble
+                
+                lowPassFilter = audioCtx.createBiquadFilter();
+                lowPassFilter.type = 'lowpass';
+                lowPassFilter.frequency.setValueAtTime(140, audioCtx.currentTime); // Crisp airflow cut
+
+                audioGainNode = audioCtx.createGain();
+                audioGainNode.gain.setValueAtTime(0.01, audioCtx.currentTime); // Subtle volume ceiling
+
+                engineOscillator.connect(lowPassFilter);
+                lowPassFilter.connect(audioGainNode);
+                audioGainNode.connect(audioCtx.destination);
+                
+                engineOscillator.start(0);
+                audioGainNode.gain.linearRampToValueAtTime(0.18, audioCtx.currentTime + 2.0);
+            } catch (e) {
+                console.warn("Audio Context init blocked or unsupported.");
+            }
+        }
+
+        function stopEngineAudio() {
+            if (audioGainNode && audioCtx) {
+                audioGainNode.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + 0.5);
+                setTimeout(() => {
+                    if (engineOscillator) {
+                        engineOscillator.stop();
+                        engineOscillator.disconnect();
+                    }
+                }, 600);
+            }
+        }
+
+        function initializeInFlightSystems() {
+            const originCode = (document.getElementById('input-from').value || "LHR").trim().substring(0, 3).toUpperCase();
+            document.getElementById('ife-header-route').innerText = `${originCode} ➔ ${selectedFlightData.code}`;
+            document.getElementById('map-node-from').innerText = originCode;
+            document.getElementById('map-node-to').innerText = selectedFlightData.code;
+            document.getElementById('ife-hud-task').innerText = selectedSeatData.task.split(' ')[0];
+            document.getElementById('ife-hud-seat').innerText = selectedSeatData.seat;
+
+            document.getElementById('flight-telemetry-plane').style.left = '0%';
+            document.getElementById('ife-progress-bar').style.width = '0%';
+            document.getElementById('terminal-log-output').innerHTML = '';
+
+            document.body.classList.add('in-flight');
+            document.getElementById('ife-main-chassis').classList.remove('engine-paused');
+            transitionActiveScreen('screen-pass', 'screen-ife');
+            
+            isEngineRunning = true;
+            document.getElementById('btn-pause').innerText = "Hold Engine";
+            
+            pushTerminalLog("Main core engine verified. Cruise departure confirmed.");
+            startEngineAudio();
+            executeClockIntervalLoop();
+        }
+
+        function executeClockIntervalLoop() {
+            renderTimerHUDUpdates();
+            
+            timerCountdownInstance = setInterval(() => {
+                if (isEngineRunning) {
+                    runningSecondsRemaining--;
+                    renderTimerHUDUpdates();
+
+                    const deltaCompletedPercent = ((totalRuntimeSeconds - runningSecondsRemaining) / totalRuntimeSeconds) * 100;
+                    document.getElementById('ife-progress-bar').style.width = `${deltaCompletedPercent}%`;
+                    document.getElementById('flight-telemetry-plane').style.left = `${deltaCompletedPercent}%`;
+
+                    if (Math.random() < 0.22) {
+                        const randomPhrase = logPhrases[Math.floor(Math.random() * logPhrases.length)];
+                        pushTerminalLog(randomPhrase);
+                    }
+
+                    if (runningSecondsRemaining <= 0) {
+                        clearInterval(timerCountdownInstance);
+                        stopEngineAudio();
+                        document.body.classList.remove('in-flight');
+                        transitionActiveScreen('screen-ife', 'screen-arrival');
+                    }
+                }
+            }, 1000);
+        }
+
+        function renderTimerHUDUpdates() {
+            const displayMinutes = Math.floor(runningSecondsRemaining / 60);
+            const displaySeconds = runningSecondsRemaining % 60;
+            document.getElementById('ife-timer-display').innerText = 
+                `${displayMinutes.toString().padStart(2, '0')}:${displaySeconds.toString().padStart(2, '0')}`;
+        }
+
+        function toggleFlightEngine() {
+            const pauseBtn = document.getElementById('btn-pause');
+            const statusHUD = document.getElementById('ife-hud-status');
+            const chassis = document.getElementById('ife-main-chassis');
+            
+            isEngineRunning = !isEngineRunning;
+            
+            if (isEngineRunning) {
+                pauseBtn.innerText = "Hold Engine";
+                statusHUD.innerText = "Cruising";
+                statusHUD.style.color = "var(--neon-blue)";
+                document.body.classList.add('in-flight');
+                chassis.classList.remove('engine-paused');
+                pushTerminalLog("Vector processing resumed. Velocity normalization active.");
+                
+                if (lowPassFilter && audioCtx) {
+                    lowPassFilter.frequency.exponentialRampToValueAtTime(140, audioCtx.currentTime + 0.6);
+                }
+            } else {
+                pauseBtn.innerText = "Resume Vector";
+                statusHUD.innerText = "Holding Grid";
+                statusHUD.style.color = "var(--neon-purple)";
+                document.body.classList.remove('in-flight');
+                chassis.classList.add('engine-paused');
+                pushTerminalLog("System cycle paused. Matrix state sustained in buffer memory.");
+                
+                if (lowPassFilter && audioCtx) {
+                    lowPassFilter.frequency.exponentialRampToValueAtTime(65, audioCtx.currentTime + 0.6);
+                }
+            }
+        }
+
+        function abortFlightSequence() {
+            if(confirm("Terminate processing stream?")) {
+                clearInterval(timerCountdownInstance);
+                stopEngineAudio();
+                document.body.classList.remove('in-flight');
+                resetWorkflowEngine();
+            }
+        }
+
+        function resetWorkflowEngine() {
+            selectedFlightData = null; selectedSeatData = null; isEngineRunning = false;
+            document.querySelectorAll('.flight-box, .seat-box').forEach(box => box.classList.remove('selected'));
+            evaluateValidationState();
+            transitionActiveScreen(document.querySelector('.screen.active').id, 'screen-setup');
+        }
+    </script>
+</body>
+</html>
