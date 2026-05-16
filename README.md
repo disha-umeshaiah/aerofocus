@@ -28,6 +28,6 @@ Graphics: Accelerated CSS3 Hardware Transitions
 
 Audio: Native Web Audio API (Sawtooth Oscillation + Exponential Biquad Lowpass Filtering)
 
-Deployment: Vercel Edge / Static
+Deployment: Vercel
 
 Operational cycle terminated. Logs committed safely to terminal matrix. Map your next outbound vector.
